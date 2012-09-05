@@ -1,5 +1,6 @@
 <?PHP
 function getDashboardData($which_query, $users_to_gather=array("-1"), $return_type="json") {
+	global $api_keys;
 	switch($which_query) {
 		case "user_specific_tasks":
 			$select_sql = "
@@ -75,7 +76,7 @@ function getDashboardData($which_query, $users_to_gather=array("-1"), $return_ty
 	}
 	
 	//	I'm making use of the mysqli object ... it's nice.
-	$mysqli = new mysqli("isdbpro.byu.edu", "luke80", "changeme", "queue");
+	$mysqli = new mysqli($api_keys['queue']['host'], $api_keys['queue']['login'], $api_keys['queue']['pass'], $api_keys['queue']['db']);
 	if($mysqli->connect_errno) {
 		printf("Connect failed: %s\n", $mysqli->connect_error);
 	}
