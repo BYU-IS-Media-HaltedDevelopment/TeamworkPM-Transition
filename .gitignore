@@ -2,6 +2,7 @@
 ## Eclipse
 #################
 
+.password
 *.pydevproject
 .project
 .metadata
