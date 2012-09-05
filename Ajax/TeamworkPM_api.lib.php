@@ -3,7 +3,7 @@ $debug_info = "";
 
 function sendTeamworkPM_APICall($path, $post_data=null,$verb=null,$credentials="NONE:xxx") {
 	global $api_keys;
-	if($credentials=="NONE:xxx") $credentials = $api_keys["luke's"]['teamwork'];
+	if($credentials == "NONE:xxx") $credentials = $api_keys["luke's"]['teamwork'];
 	if(strpos($credentials, ":xxx") == -1) {
 		$credentials = $credentials.":xxx";
 	}
