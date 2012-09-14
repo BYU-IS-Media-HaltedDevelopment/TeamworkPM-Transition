@@ -11,6 +11,14 @@ require_once('.password');
 	<script type="text/javascript">
 
 	/*
+	Model for the user	
+	*/
+	var User = {
+		apiKey: "",
+		dashboardId: ""
+	};
+
+	/*
 	Controller for the entire app
 	*/
 	var MigrationUtilCntrl = function(){
@@ -28,10 +36,27 @@ require_once('.password');
 		this.userInfoCntrl = new UserInfoCntrl(this); // this refers to the controller
 	}
 
+	/*
+		
+	*/
 	MigrationUtilCntrl.prototype.goToStep = function(stepId)
 	{
 		if(stepId == 2)
 			$("#project_selection").slideToggle();
+	};
+
+	/*
+	Stores the user's api key in the model
+	*/
+	MigrationUtilCntrl.prototype.storeUserApiKey = function(apiKey) {
+		User.apiKey = apiKey;
+	};
+
+	/*
+	Stores the user's dashboard id in the model 
+	*/
+	MigrationUtilCntrl.prototype.storeUserDashboardId = function(userDashboardId) {
+		User.dashboardId = userDashboardId; 
 	};
 
 	/*
@@ -48,9 +73,10 @@ require_once('.password');
 					dashboard_username: "lewistg"
 				},
 				function(data) {
-					//console.log(data);
-					//IsLog.LOG_ON = true;
-					IsLog.log(data);
+					migrationUtilCntrl.storeUserApiKey($
+
+
+					IsLog.c(data);
 
 					//alert(data);
 					//$("#copyTasks").html(data)
