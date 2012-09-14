@@ -7,6 +7,7 @@ require_once('.password');
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<title>Dashboard to TeamworkPM Migration Utility</title>
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js" type="text/javascript"></script>
+	<script src="../JavaScript-DebugTools/debug.lib.js" type="text/javascript"></script>
 	<script type="text/javascript">
 
 	/*
@@ -41,6 +42,23 @@ require_once('.password');
 
 		// connect the controller to the view			
 		$("#user_info_next_button").click(function(){	
+			$.post("Ajax/portal.php", {
+					method: "dashboard",
+					action: "get_user_id",
+					dashboard_username: "lewistg"
+				},
+				function(data) {
+					//console.log(data);
+					//IsLog.LOG_ON = true;
+					IsLog.log(data);
+
+					//alert(data);
+					//$("#copyTasks").html(data)
+					//var jsonResponse = JSON.parse(data);
+					//alert(data.length + '\n' + JSON.stringify(jsonResponse.response.todo_lists.length));
+				}
+			);
+
 			migrationUtilCntrl.goToStep(2);
 		});
 	};

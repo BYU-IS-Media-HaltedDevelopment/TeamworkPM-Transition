@@ -58,6 +58,20 @@ function getUserTasksQuery(){
 }
 
 /*
+Gets the query that will select the given username's user id.
+*/
+function getUserIdQuery() {
+	assert(isset($_POST["dashboard_username"]));
+
+	return "SELECT 	
+		* 
+	FROM 
+		person 
+	WHERE 
+		login_name = " . $_POST["dashboard_username"];
+}
+
+/*
 Portal function for dashboard data
 */
 function getDashboardData($which_query, $users_to_gather=array("-1"), $return_type="json") {
@@ -88,13 +102,20 @@ function getDashboardData($which_query, $users_to_gather=array("-1"), $return_ty
 					course_num IS NOT NULL AND
 					course_num <> ''";
 		break;
+
+		case "get_user_id":
+			$select_sql = getUserIdQuery();
+		break;
 		
 		default:
 		break;
 	}
 	
 	//	I'm making use of the mysqli object ... it's nice.
-	$mysqli = new mysqli($api_keys['queue']['host'], $api_keys['queue']['login'], $api_keys['queue']['pass'], $api_keys['queue']['db']);
+	$mysqli = new mysqli($api_keys['queue']['host'], 
+				$api_keys['queue']['login'], 
+				$api_keys['queue']['pass'], 
+				$api_keys['queue']['db']);
 	if($mysqli->connect_errno) {
 		printf("Connect failed: %s\n", $mysqli->connect_error);
 	}
