@@ -26,7 +26,6 @@ if(isset($_POST) && !is_null($_POST)) {
 	//if($_POST['id'] == "") {
 	//	$ret_json .= "\"LOCAL_ERROR\":\"Malformed request, aborted. id undefined\"";
 	//} else {
-	echo var_dump($_POST);
 	switch(strtolower($_POST['method'])) {
 		// If it was a teamwork call... 
 		case "delete":
@@ -55,9 +54,8 @@ if(isset($_POST) && !is_null($_POST)) {
 		
 		// If it was a dashboard call...
 		case "dashboard":
-			echo "Attempting to get the the course listing";
 			//$ret_json .= ",\"response\":".json_encode(getDashboardData($_POST['action'], $_POST['user_id']));
-			$ret_json .= ",\"response\":".json_encode(getDashboardData($_POST['action'], $_POST['user_id']));
+			$ret_json .= ",\"response\":".(getDashboardData($_POST['action']));
 		break;
 		
 		default:
