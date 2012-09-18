@@ -6,6 +6,7 @@ require_once('.password');
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<title>Dashboard to TeamworkPM Migration Utility</title>
+	<link rel="stylesheet" type="text/css" href="generic_style.css" />
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js" type="text/javascript"></script>
 	<script src="../JavaScript-DebugTools/debug.lib.js" type="text/javascript"></script>
 	<script type="text/javascript">
@@ -19,166 +20,155 @@ require_once('.password');
 	};
 
 	/*
-	Controller for the entire app
+	Controller for the entire app.  Only this controller will talk
+	to the model.
 	*/
-	var MigrationUtilCntrl = function(){
-		this.userInfoCntrl; 		// The user info controller
-		this.projectSelectionCntrl; 	// Project selection controller
+	var MigrationUtilCntrl = {
+		/*
+		Puts the application into a legal starting state
+		*/
+		init: function() {
+			UserInfoCntrl.init();
+			ProjectSelectionCntrl.hideUi();
+		},
 
-		// Initially hide views besides the first one 
-		$("#project_selection").hide();
-	};
+		/*
+		Moves the utility to the given step.
+		*/
+		goToStep: function(stepId) {
+			if(stepId == 2) {
+				$("#project_selection").slideToggle();
+				ProjectSelectionCntrl.populateProjects(User.dashboardId);
+			}
+		},
 
+		/*
+		Stores the user's api key in the model
+		*/
+		storeUserApiKey: function(apiKey) {
+			User.apiKey = apiKey;
+		},
 
-	/*
-	Wires subcontrollers up to their views
-	*/
-	MigrationUtilCntrl.prototype.wireSubControllers = function(){
-		// "this" refers to the MigrationUtilCntrl in this context
-		this.userInfoCntrl = new UserInfoCntrl(this); 
-		this.projectSelectionCntrl = new ProjectSelectionCntrl(this);
-	}
-
-	/*
-		
-	*/
-	MigrationUtilCntrl.prototype.goToStep = function(stepId)
-	{
-		if(stepId == 2) {
-			$("#project_selection").slideToggle();
-			this.projectSelectionCntrl.populateProjects(User.dashboardId);
+		/*
+		Stores the user's dashboard id in the model 
+		*/
+		storeUserDashboardId: function(userDashboardId) {
+			User.dashboardId = userDashboardId; 
 		}
-
 	};
 
-	/*
-	Stores the user's api key in the model
-	*/
-	MigrationUtilCntrl.prototype.storeUserApiKey = function(apiKey) {
-		User.apiKey = apiKey;
-		IsLog.c("User key: " + User.apiKey);
-	};
-
-	/*
-	Stores the user's dashboard id in the model 
-	*/
-	MigrationUtilCntrl.prototype.storeUserDashboardId = function(userDashboardId) {
-		User.dashboardId = userDashboardId; 
-		IsLog.c("Dashboard user id: " + User.dashboardId);
-	};
 
 	/*
 	Controller for when the user enters their information.
 	*/
-	var UserInfoCntrl = function(migrationUtilCntrl){
-		 var migrationUtilCntrl = migrationUtilCntrl;
+	var UserInfoCntrl = {
+		/*
+		Initializes the user info controller
+		*/
+		init: function() {
+			// connect the controller to the view			
+			$("#user_info_next_button").click(function(){	
+				var dashboardUsername = $("#dashboard_username_input").val();
+				IsLog.c("Username: " + dashboardUsername); 
+				$.post("Ajax/portal.php", {
+						method: "dashboard",
+						action: "get_user_id",
+						dashboard_username: dashboardUsername 
+					},
+					function(jsonUserData) {
+						IsLog.c(jsonUserData);
+						var userPortalInfo = eval("(" + jsonUserData + ")");
+						
+						MigrationUtilCntrl.storeUserDashboardId(userPortalInfo.response[0].person_id);
+						MigrationUtilCntrl.storeUserApiKey($("#api_key_input").val());
 
-		// connect the controller to the view			
-		$("#user_info_next_button").click(function(){	
-			var dashboardUsername = $("#dashboard_username_input").val();
-			IsLog.c("Username: " + dashboardUsername); 
-			$.post("Ajax/portal.php", {
-					method: "dashboard",
-					action: "get_user_id",
-					dashboard_username: dashboardUsername 
-				},
-				function(jsonUserData) {
-					IsLog.c(jsonUserData);
-					var userPortalInfo = eval("(" + jsonUserData + ")");
-					migrationUtilCntrl.storeUserDashboardId(userPortalInfo.response[0].person_id);
-					migrationUtilCntrl.storeUserApiKey($("#api_key_input").val());
-				migrationUtilCntrl.goToStep(2);
-				});
+						MigrationUtilCntrl.goToStep(2);
+					});
 
-		});
+			});
+		}
 	};
 
 	/*
 	Controller for when the user selects a course to migrate.
 	*/
-	var ProjectSelectionCntrl = function(migrationUtilCntrl){
-		 var migrationUtilCntrl = migrationUtilCntrl;
-		// hide the initial view 	
-	};
+	var ProjectSelectionCntrl = {
+		/*
+		Populates the view with rows of tasks 
+		*/
+		populateProjects: function(dashboardId) {
+			IsLog.c("Getting the projects for: " + dashboardId);	
+			$.post("Ajax/portal.php", {
+					method: "dashboard",
+					action: "user_specific_tasks",
+					user_id: "'" + dashboardId + "'" 
+				},
+				function(jsonTaskData) {
+					var userPortalInfo = eval("(" + jsonTaskData + ")");
+					for(var taskIndex in userPortalInfo.response) {
+						userTaskData = userPortalInfo.response[taskIndex]
 
+						rowView = $(ProjectSelectHtmlFactory.createTaskRow(userTaskData));
+						$("#dashboard_course_listing").append(rowView);
+
+						detailView = $(ProjectSelectHtmlFactory.createTaskDetailView(userTaskData));
+						$("#dashboard_course_listing").append(detailView);
+						detailView.hide();
+
+						// wire the row view up to the detailed view
+						rowView.click(function(event){
+							taskId = $(this).attr("id").replace("row_for_task_", "");
+							$("#detail_of_task_" + taskId).show();
+						});
+
+						IsLog.c(userTaskData);
+					}
+				});
+		},
+
+		/*
+		Hides the user gui for project selection
+		*/
+		hideUi: function() {
+			$("#project_selection").hide();
+		},
+	};
+	
 	/*
-	Creates an html row containing the task data for the user.
+	Provides utility methods for creating elements used in the project selection
+	view
 	*/
-	ProjectSelectionCntrl.prototype.createTableRow = function(userTaskData) {
-		rowHtml = "<tr>";		
-		rowHtml += "<td>" + userTaskData.asignee_first_name + " " + userTaskData.asignee_last_name + "</td>";
-		rowHtml += "<td>" + userTaskData.asigner_first_name + " " + userTaskData.asigner_last_name + "</td>";
-		rowHtml += "</tr>";		
+	ProjectSelectHtmlFactory = {
+		/*
+		Creates a row for task
+		*/
+		createTaskRow: function(userTaskData) {
+			rowHtml = "<tr id='row_for_task_" + userTaskData.external_id + "'>";		
+			rowHtml += "<td>" + userTaskData.assignee_first_name + 
+					" " + userTaskData.assignee_last_name + "</td>";
+			rowHtml += "<td>" + userTaskData.assigner_first_name +
+					" " + userTaskData.assigner_last_name + "</td>";
+			rowHtml += "<td>" + userTaskData.description.substr(0, 100) + "... </td>";
+			rowHtml += "</tr>";		
+
+			IsLog.c(rowHtml);
+			return rowHtml;
+		},
+
+		createTaskDetailView: function(userTaskData) {
+			detailViewHtml = "<tr><td><div id='detail_of_task_" + userTaskData.external_id  + "'>";
+			detailViewHtml += "<p>Assignee: " + userTaskData.assignee_first_name + 
+					" " + userTaskData.assignee_last_name + "</p>";
+			detailViewHtml += "<p>Assigner: " + userTaskData.assigner_first_name +
+					" " + userTaskData.assigner_last_name + "</p>";
+			detailViewHtml += "</div></td></tr>";
+			return detailViewHtml; 
+		}
 	};
-
-	/*
-	Gets the populates the list of tasks to migrate 
-	*/
-	ProjectSelectionCntrl.prototype.populateProjects = function(dashboardId) { 
-		IsLog.c("Getting the projects for: " + dashboardId);	
-		$.post("Ajax/portal.php", {
-				method: "dashboard",
-				action: "user_specific_tasks",
-				user_id: "'" + dashboardId + "'" 
-			},
-			function(jsonTaskData) {
-				var userPortalInfo = eval("(" + jsonTaskData + ")");
-				for(var taskIndex in userPortalInfo.response) {
-					userTaskData = userPortalInfo.response[taskIndex]
-
-					rowHtml = "<tr>";		
-					rowHtml += "<td>" + userTaskData.assignee_first_name 
-							+ " " + userTaskData.assignee_last_name + "</td>";
-					rowHtml += "<td>" + userTaskData.assigner_first_name 
-							+ " " + userTaskData.assigner_last_name + "</td>";
-					rowHtml += "<td>" +userTaskData.description.substr(0, 100) + "..." + "</td>";
-					rowHtml += "</tr>";		
-
-					//$("#dashboard_course_listing").append("<tr><td>Hello there!</td></tr>");
-					$("#dashboard_course_listing").append(rowHtml);
-
-					IsLog.c(userTaskData);
-				}
-				/*migrationUtilCntrl.storeUserDashboardId(userPortalInfo.response[0].person_id);
-				migrationUtilCntrl.storeUserApiKey($("#api_key_input").val());
-			migrationUtilCntrl.goToStep(2);*/
-			});
-	};
-
-
+	
 	//	<!--
 	$(document).ready(function() {
-		var migrationUtilCntrl = new MigrationUtilCntrl();
-		migrationUtilCntrl.wireSubControllers();
-
-
-		/*$("#requestType").change(function(e) {
-			$(".tasktab").css("display","none");
-			$("#"+e.target.options[e.target.selectedIndex].value).css("display","block");
-			//$("#"+).css("display","none");
-			$.post("Ajax/portal.php", {
-					api_key: $("#api_key").value,
-					id: "38839",
-					method: "GET",
-					action: "projects"
-				},
-				function(data) {
-					//alert(data);
-					$("#copyTasks").html(data)
-					var jsonResponse = JSON.parse(data);
-					alert(data.length + '\n' + JSON.stringify(jsonResponse.response.todo_lists.length));
-				}
-			);
-		});*/
-		
-		// Load all the courses that can be migrated from dashboard
-		/*$.post("Ajax/portal.php", {
-					method: "dashboard",
-					id: "38839",
-					action: "get_course_listing"},
-				function(data){
-					alert(data);
-				});*/
+		MigrationUtilCntrl.init();
 	});
 	//	-->
 	</script>
@@ -195,8 +185,8 @@ require_once('.password');
     </div>
 
     <div id="project_selection">
-    	<h2>Step 2: Please select dashboard tasks to migrate</h2>
-	<p>You can click a row to see more</p>
+    	<h2>Step 2: Please select dashboard tasks to migrate...</h2>
+	<p>Click a task to see a detailed view.</p>
        	<table id="dashboard_course_listing">
 	<tr>
 		<th>Assignee</th>
