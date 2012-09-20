@@ -150,24 +150,6 @@ function putTeamworkPMData($data,$data_type="create_todo",$id=38839,$format="jso
 		case "update_todo-item":
 			$action = "todo_items/".$id.".".$format;
 			if(strtolower($format) == "json") {
-				$request_obj = json_decode(str_replace("-", "_", "{\"todo-item\": ".$data."}"), false);
-				$acceptable_properties = array("content","notify","description","due_date","priority","responsible_party_id");
-				$required_properties = array("content"=>"","notify"=>"false","description"=>"","private"=>"false","priority"=>"medium");
-				foreach($request_obj as $key1 => $val1) {
-					if($key1 == "todo_item") {
-						foreach($val1 as $key2 => $val2) {
-							if(!in_array($key2, $acceptable_properties)) {
-								unset($request_obj->todo_item->$key2);
-							}
-						}
-					}
-				}
-				foreach($required_properties as $prop => $default_value) {
-					if(!isset($request_obj->todo_item->$prop)) {
-						$request_obj->todo_item->$prop = $default_value;
-					}
-				}
-				$request_json = str_replace("_", "-", json_encode($request_obj));
 				$data = $request_json;
 			}
 			/*
@@ -322,6 +304,57 @@ function parseTeamworkResponse($response_text, $format="json") {
 	}
 	//echo "\n9:\n";
 	return $ret;
+}
+
+function pruneObjectforPost($obj_to_prune) {
+	//	In this section I attempted an idea for using JSON-produced objects
+	//	The basic idea was to use the original structure - modify the things that need modification
+	//	then send the updated object back. However, including properties that can't be updated makes
+	//	the api fail, so the tree needs to be pruned.
+	//	I think this path should be finished, since the basic idea of it is good.
+	//	To that end I think I'll make it its own function.
+	$request_obj = json_decode(str_replace("-", "_", "{\"todo-item\": ".$obj_to_prune."}"), false);
+	$acceptable_properties = array("content","notify","description","due_date","priority","responsible_party_id");
+	$required_properties = array("content"=>"","notify"=>"false","description"=>"","private"=>"false","priority"=>"medium");
+	foreach($request_obj as $key1 => $val1) {
+		if($key1 == "todo_item") {
+			foreach($val1 as $key2 => $val2) {
+				if(!in_array($key2, $acceptable_properties)) {
+					unset($request_obj->todo_item->$key2);
+				}
+			}
+		}
+	}
+	foreach($required_properties as $prop => $default_value) {
+		if(!isset($request_obj->todo_item->$prop)) {
+			$request_obj->todo_item->$prop = $default_value;
+		}
+	}
+	$request_json = str_replace("_", "-", json_encode($request_obj));
+	
+	return $obj_to_prune;
+}
+function changeHyphenationFromObjectPropertyTitles($obj, $remove=true) {
+	$remove_char = ($remove)?"-":"_";
+	$add_char = ($remove)?"_":"-";
+	if($obj instanceof String) {
+		$string_value = $obj;
+	} else {
+		$string_value = json_encode($obj);
+	}
+	$max_loops = 10000;
+	$loop_count = 0;
+	while(preg_match("/[\{\[,]\s*\"[\w\d]+".$remove_char."/i", $string_value, $matches) && $max_loops < $loop_count) {
+		$string_value = preg_replace('/([\{\[,]\s*\"[\w\d]+)'.$remove_char.'/i', "\1".$add_char, $string_value);
+		$loop_count++;
+	}
+	echo "LoopCount: ".$loop_count."\n";
+	if($obj instanceof String) {
+		return $string_value;
+	} else {
+		return json_decode($string_value);
+	}
+	return $obj;
 }
 /*
 function addUsersToProject($project=38839,$users="ALL",$permissionToAdd="Admin") {
