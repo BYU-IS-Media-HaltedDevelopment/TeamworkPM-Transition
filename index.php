@@ -20,6 +20,26 @@ require_once('.password');
 	};
 
 	/*
+	Collection for all the people in Teamwork
+	*/
+	var TeamworkPeopleCollection = {
+		/*
+		Loads the people from the teamwork website
+		*/
+		load: function(apiKey) {
+			$.post("Ajax/portal.php", {
+					method: "teamwork",
+					verb: "get",
+					path: "me.json",
+					api_key: "indiana702egg"
+				},
+				function(jsonUserData) {
+					IsLog.c(jsonUserData);
+				});
+		}
+	};
+
+	/*
 	Controller for the entire app.  Only this controller will talk
 	to the model.
 	*/
@@ -118,7 +138,7 @@ require_once('.password');
 						// wire the row view up to the detailed view
 						rowView.click(function(event){
 							taskId = $(this).attr("id").replace("row_for_task_", "");
-							$("#detail_of_task_" + taskId).show();
+							$("#detail_of_task_" + taskId).slideToggle();
 						});
 
 						IsLog.c(userTaskData);
@@ -143,25 +163,28 @@ require_once('.password');
 		Creates a row for task
 		*/
 		createTaskRow: function(userTaskData) {
-			rowHtml = "<tr id='row_for_task_" + userTaskData.external_id + "'>";		
-			rowHtml += "<td>" + userTaskData.assignee_first_name + 
-					" " + userTaskData.assignee_last_name + "</td>";
-			rowHtml += "<td>" + userTaskData.assigner_first_name +
-					" " + userTaskData.assigner_last_name + "</td>";
-			rowHtml += "<td>" + userTaskData.description.substr(0, 100) + "... </td>";
-			rowHtml += "</tr>";		
+			rowHtml = "<div class='task_row task_ready' id='row_for_task_" + userTaskData.external_id + "'>";	
+			rowHtml += "<p class='task_assignee'>" + userTaskData.assignee_first_name + 
+					" " + userTaskData.assignee_last_name + "</p>";
+			rowHtml += "<p class='task_assigner'>" + userTaskData.assigner_first_name +
+					" " + userTaskData.assigner_last_name + "</p>";
+			rowHtml += "<p class='task_description'>" + userTaskData.description.substr(0, 100) + "... </p>";
+			rowHtml += "</p>";
+			rowHtml += "</div><hr />";
 
 			IsLog.c(rowHtml);
 			return rowHtml;
 		},
 
 		createTaskDetailView: function(userTaskData) {
-			detailViewHtml = "<tr><td><div id='detail_of_task_" + userTaskData.external_id  + "'>";
+			detailViewHtml = "<div class='detail_task_view' id='detail_of_task_" + userTaskData.external_id  + "'>";
 			detailViewHtml += "<p>Assignee: " + userTaskData.assignee_first_name + 
 					" " + userTaskData.assignee_last_name + "</p>";
 			detailViewHtml += "<p>Assigner: " + userTaskData.assigner_first_name +
 					" " + userTaskData.assigner_last_name + "</p>";
-			detailViewHtml += "</div></td></tr>";
+			detailViewHtml += "<p class='task_detail_complete_descrip'>Complete Description</p>";
+			detailViewHtml += "<p>" + userTaskData.description + "</p>";
+			detailViewHtml += "</div>";
 			return detailViewHtml; 
 		}
 	};
@@ -169,6 +192,7 @@ require_once('.password');
 	//	<!--
 	$(document).ready(function() {
 		MigrationUtilCntrl.init();
+		TeamworkPeopleCollection.load();
 	});
 	//	-->
 	</script>
@@ -187,13 +211,16 @@ require_once('.password');
     <div id="project_selection">
     	<h2>Step 2: Please select dashboard tasks to migrate...</h2>
 	<p>Click a task to see a detailed view.</p>
-       	<table id="dashboard_course_listing">
-	<tr>
-		<th>Assignee</th>
-		<th>Assigner</th>
-		<th>Description</th>
-	</tr>
-        </table>
+	<p>Color code: Red means there are un-automated steps that need to be performed before this task
+	can be migrated.  Click here to find out what steps are. Green means they are ready to migrate.</p>
+	<div id="dashboard_course_listing">
+		<div id="task_table_headers">
+			<p class="task_assignee">Assignee</p>
+			<p class="task_assigner">Assigner</p>
+			<p class="task_description">Description</p>
+		</div>
+		<hr />
+	</div>
     </div>
 </body>
 </html>

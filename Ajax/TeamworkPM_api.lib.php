@@ -1,22 +1,65 @@
 <?PHP
 $debug_info = "";
 
+/*
+Retrives TeamworkPM data
+
+{@pre isset($_POST["verb"])}
+{@pre isset($_POST["path"])}
+{@pre isset($_POST["api-key"])}
+*/
+function getTeamworkPMData() 
+{ 
+	assert(isset($_POST["verb"]));
+	assert(isset($_POST["path"]));
+	assert(isset($_POST["api_key"]));
+
+	$ch = curl_init();
+	curl_setopt($ch, CURLOPT_URL, "http://byuis.teamworkpm.net/" . $_POST["path"]);
+	curl_setopt($ch, CURLOPT_HTTPHEADER, array (
+			"Content-Type: text/xml; charset=utf-8",
+			"Expect: 100-continue",
+			"Authorization: Basic " . base64_encode($_POST["api_key"])
+		));
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+	$response = curl_exec($ch);
+	echo $response;
+
+	curl_close($ch);
+}
+
+/*
+
+*/
+/*function getTeamworkPMData($data_type="projects",$id=38839,$flags="") {
+	$debug_info = "";
+	$url = formTeamworkPMurl($data_type,"json",$id);
+	$debug_info .= "Formed request url: ".$url."\n";
+	$result_query = sendTeamworkPM_APICall($url.((strlen($flags)>0)?"?".$flags:""));
+	if(substr($result_query['status'],0,1) != "2") {
+		echo "Unexpected result returned from Teamwork API.<br/>\n";
+		echo "Requested: ".$url."<br/>\n";
+		echo "Status: ".$result_query['status']."<br/>\n";
+		return false;
+	}
+	//$debug_info .= "".$result_query["body"]."-\n";
+	$result_data = parseTeamworkResponse($result_query["body"], "json");
+	$result_data->header = explode("\n",$result_query['header']);
+	$result_data->debug_data = $debug_info;
+	return $result_data;
+}*/
+
+/*
+
+*/
 function sendTeamworkPM_APICall($path, $post_data=null,$verb=null,$credentials="NONE:xxx") {
 	global $api_keys;
 	if($credentials == "NONE:xxx") $credentials = $api_keys["luke's"]['teamwork'];
 	if(strpos($credentials, ":xxx") == -1) {
 		$credentials = $credentials.":xxx";
 	}
-	/*
-	set_time_limit(0);		//	Stop timeouts
-	$debug_info .= "Sleeping for 0.5 seconds
- ".date('h:i:s.u')."
---\n";
-	usleep(500000);			//	Sleep for 0.5 sec to avoid the TeamWork rate limiter (120 requests / min) 
-	$debug_info .= "Slept for 0.5 seconds
- ".date('h:i:s.u')."
---\n";
-	*/
+
 	//	This PHP script accesses the TeamWork PM api
 	
 	$ret = array(
@@ -32,22 +75,14 @@ function sendTeamworkPM_APICall($path, $post_data=null,$verb=null,$credentials="
 	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 	curl_setopt($ch, CURLOPT_NOBODY, false);
 	curl_setopt($ch, CURLOPT_HEADER, true);
-	if(!is_null($verb) && trim($verb) != "" && (strtolower($verb) == "put" || !in_array(strtolower($verb),array("get","post")))) {
-		$debug_info .= "Performing request to "."http://byuis.teamworkpm.net/".$path." with verb:
-".$verb."
---\n";
+	if(!is_null($verb) && trim($verb) != "" 
+			&& (strtolower($verb) == "put" || !in_array(strtolower($verb),array("get","post")))) {
+		$debug_info .= "Performing request to ".
+				"http://byuis.teamworkpm.net/".$path." with verb:"
+				.$verb."--\n";
+
 		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($verb));
-		/*
-		curl_setopt($ch, CURLOPT_PUT, true);
-		$time = time();
-		$infile_file_name = "tmp/infile.".$time.".".substr(md5($post_data),22).".tmp";
-		$fp = fopen($infile_file_name, "w+");
-		fwrite($fp, $post_data);
-		//fwrite($fp, "");
-		fclose($fp);
-		curl_setopt($ch, CURLOPT_INFILE, $infile_file_name);
-		curl_setopt($ch, CURLOPT_INFILESIZE, filesize($infile_file_name));
-		*/
+
 		if(!is_null($post_data)) {
 			curl_setopt($ch, CURLOPT_POSTFIELDS, $post_data);
 			curl_setopt($ch, CURLOPT_HTTPHEADER, array (
@@ -89,7 +124,8 @@ function sendTeamworkPM_APICall($path, $post_data=null,$verb=null,$credentials="
 	$ret['body'] = $body;
 	if(preg_match("/[\r\n]Location:[^\r\n]+\/(\d+)[\r\n]/", $header, $matches) > 0) {
 		$ret['new_id'] = $matches[1];
-	} else {
+	} 
+	else {
 		//echo "Error in result. Data missing from response!<br/>\nStatus: ".$ret['status']."<br/>\n".$ret['body'];
 		$ret['new_id'] = null;
 	}
@@ -97,23 +133,6 @@ function sendTeamworkPM_APICall($path, $post_data=null,$verb=null,$credentials="
 	return $ret;
 }
 
-function getTeamworkPMData($data_type="projects",$id=38839,$flags="") {
-	$debug_info = "";
-	$url = formTeamworkPMurl($data_type,"json",$id);
-	$debug_info .= "Formed request url: ".$url."\n";
-	$result_query = sendTeamworkPM_APICall($url.((strlen($flags)>0)?"?".$flags:""));
-	if(substr($result_query['status'],0,1) != "2") {
-		echo "Unexpected result returned from Teamwork API.<br/>\n";
-		echo "Requested: ".$url."<br/>\n";
-		echo "Status: ".$result_query['status']."<br/>\n";
-		return false;
-	}
-	//$debug_info .= "".$result_query["body"]."-\n";
-	$result_data = parseTeamworkResponse($result_query["body"], "json");
-	$result_data->header = explode("\n",$result_query['header']);
-	$result_data->debug_data = $debug_info;
-	return $result_data;
-}
 function putTeamworkPMData($data,$data_type="create_todo",$id=38839,$format="json") {
 	$debug_info = "";
 	if(is_array($data) || is_object($data)) {

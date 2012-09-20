@@ -27,6 +27,16 @@ if(isset($_POST) && !is_null($_POST)) {
 	//	$ret_json .= "\"LOCAL_ERROR\":\"Malformed request, aborted. id undefined\"";
 	//} else {
 	switch(strtolower($_POST['method'])) {
+		case "teamwork":
+			//echo "<!-- Attempting to load JSON from TeamworkPM -->\n";
+			if($throttle_obj = throttler($max_requests_per_second,true,true)) {
+				$ret_json .= ",\"response\":".json_encode(getTeamworkPMData());
+			} 
+			else {
+				$ret_json .=  "\"request\":{\"status\":\"not ready\"}";
+			}
+		break;
+
 		// If it was a teamwork call... 
 		case "delete":
 		case "post":
