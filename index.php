@@ -12,6 +12,10 @@ require_once('.password');
 	<script type="text/javascript">
 
 	/*
+	=======================Model=======================
+	*/
+
+	/*
 	Model for the user	
 	*/
 	var User = {
@@ -24,20 +28,116 @@ require_once('.password');
 	*/
 	var TeamworkPeopleCollection = {
 		/*
+		Array of people
+		*/
+		people: null,
+
+		/*
 		Loads the people from the teamwork website
 		*/
 		load: function(apiKey) {
 			$.post("Ajax/portal.php", {
 					method: "teamwork",
 					verb: "get",
-					path: "me.json",
+					path: "people.json",
 					api_key: "indiana702egg"
 				},
 				function(jsonUserData) {
-					IsLog.c(jsonUserData);
+					userData = eval('(' + jsonUserData + ')');
+					IsLog.c(userData);
+
+					this.people = new Array();
+					for(var personIndex in userData.response.people) 
+						this.people.push(userData.response.people[personIndex]);	
 				});
 		}
 	};
+
+	/*
+	Collection of Projects
+	*/
+	var TeamworkProjectsCollection = {
+		projects: null,
+
+		/*
+		Loads the projects from the teamwork website
+		*/
+		load: function(apiKey) {
+			$.post("Ajax/portal.php", {
+					method: "teamwork",
+					verb: "get",
+					path: "projects.json",
+					api_key: "indiana702egg"
+				},
+				function(jsonProjectData) {
+					projectData = eval("(" + jsonProjectData + ")");
+					
+					this.projects = new Array();
+					for(projectIndex in projectData.response.projects)
+						this.projects.push(projectData.response.projects[projectIndex]);
+
+					IsLog.c(projectData);
+				});
+		}
+	};
+
+	/*
+	Collection of Dashboard Tasks for a user
+	*/
+	var DashUserTaskCollection = {
+		/*
+		Array of Dashboard tasks
+		*/
+		tasks: null,
+		
+		/*
+		Loads the dashboard tasks from the portal
+		*/
+		load: function(dashboardUseId) {
+			$.post("Ajax/portal.php", {
+					method: "dashboard",
+					action: "user_specific_tasks",
+					user_id: "'" + dashboardId + "'" 
+				},
+				function(jsonTaskData) {
+					var userPortalInfo = eval("(" + jsonTaskData + ")");
+
+					this.tasks = new Array();
+					for(var taskIndex in userPortalInfo.response) 
+						this.tasks.push(userPortalInfo.response[taskIndex]);
+				});
+		}
+	};
+	
+	/*
+	Represents a task that can be migrated
+	*/
+	var MigrationTask = function() {
+		this.dashboardTask = null;
+		this.teamworkProject = null;
+		this.ready = false;
+	};
+
+	/*
+	Collection of migration tasks
+	*/
+	var MigrationTasksCollection = {
+		/*
+		Array of Migration Tasks
+		*/
+		this.migrationTasks = new Array();
+
+		/*
+		Loads the collection of migration tasks
+		*/
+		load: function(dashboardTasks, teamworkProjects) {
+			// 
+		}
+	};
+
+	/*
+	=======================Controllers/Model=======================
+	*/
 
 	/*
 	Controller for the entire app.  Only this controller will talk
@@ -193,6 +293,7 @@ require_once('.password');
 	$(document).ready(function() {
 		MigrationUtilCntrl.init();
 		TeamworkPeopleCollection.load();
+		TeamworkProjectsCollection.load();
 	});
 	//	-->
 	</script>

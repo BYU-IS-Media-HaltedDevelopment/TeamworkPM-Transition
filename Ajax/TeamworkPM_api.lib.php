@@ -24,9 +24,11 @@ function getTeamworkPMData()
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
 	$response = curl_exec($ch);
-	echo $response;
+	//echo $response;
 
 	curl_close($ch);
+
+	return $response;
 }
 
 /*

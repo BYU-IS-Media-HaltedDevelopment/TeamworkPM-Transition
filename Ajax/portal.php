@@ -30,7 +30,7 @@ if(isset($_POST) && !is_null($_POST)) {
 		case "teamwork":
 			//echo "<!-- Attempting to load JSON from TeamworkPM -->\n";
 			if($throttle_obj = throttler($max_requests_per_second,true,true)) {
-				$ret_json .= ",\"response\":".json_encode(getTeamworkPMData());
+				$ret_json .= ",\"response\":".getTeamworkPMData();
 			} 
 			else {
 				$ret_json .=  "\"request\":{\"status\":\"not ready\"}";
