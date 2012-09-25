@@ -93,8 +93,12 @@ require_once('.password');
 		
 		/*
 		Loads the dashboard tasks from the portal
+
+		dashboardId: The dashboard user name
+		callBack: The call back that is called once the list is loaded
+
 		*/
-		load: function(dashboardId) {
+		load: function(dashboardId, callBack) {
 			$.post("Ajax/portal.php", {
 					method: "dashboard",
 					action: "user_specific_tasks",
@@ -106,6 +110,8 @@ require_once('.password');
 					DashUserTaskCollection.tasks = new Array();
 					for(var taskIndex in userPortalInfo.response) 
 						DashUserTaskCollection.tasks.push(userPortalInfo.response[taskIndex]);
+
+					callBack();
 				});
 		}
 	};
@@ -160,7 +166,10 @@ require_once('.password');
 			if(stepId == 2) {
 				IsLog.c("Getting the model information");
 				// pull all of the dashboard projects
-				DashUserTaskCollection.load(User.dashboardId);
+				DashUserTaskCollection.load(User.dashboardId, function(){
+					IsLog.c("Loading the dashboard tasks");
+					ProjectSelectionCntrl.loadDashTasks();
+				});
 
 				// load all of the teamwork projects 
 				TeamworkPeopleCollection.load();
@@ -225,34 +234,14 @@ require_once('.password');
 		/*
 		Populates the view with rows of tasks 
 		*/
-		populateProjects: function(dashboardId) {
-			IsLog.c("Getting the projects for: " + dashboardId);	
-			$.post("Ajax/portal.php", {
-					method: "dashboard",
-					action: "user_specific_tasks",
-					user_id: "'" + dashboardId + "'" 
-				},
-				function(jsonTaskData) {
-					var userPortalInfo = eval("(" + jsonTaskData + ")");
-					for(var taskIndex in userPortalInfo.response) {
-						userTaskData = userPortalInfo.response[taskIndex]
+		loadDashTasks: function(dashboardId) {
+			for(var i = 0; i < DashUserTaskCollection.tasks.length; i++){
+				$("#dashboard_course_listing").append(
+					ProjectSelectHtmlFactory.createTaskRow(DashUserTaskCollection.tasks[i])
+						);
+			}
 
-						rowView = $(ProjectSelectHtmlFactory.createTaskRow(userTaskData));
-						$("#dashboard_course_listing").append(rowView);
-
-						detailView = $(ProjectSelectHtmlFactory.createTaskDetailView(userTaskData));
-						$("#dashboard_course_listing").append(detailView);
-						detailView.hide();
-
-						// wire the row view up to the detailed view
-						rowView.click(function(event){
-							taskId = $(this).attr("id").replace("row_for_task_", "");
-							$("#detail_of_task_" + taskId).slideToggle();
-						});
-
-						IsLog.c(userTaskData);
-					}
-				});
+			$("#project_selection").slideToggle();
 		},
 
 		/*
@@ -271,13 +260,13 @@ require_once('.password');
 		/*
 		Creates a row for task
 		*/
-		createTaskRow: function(userTaskData) {
-			rowHtml = "<div class='task_row task_ready' id='row_for_task_" + userTaskData.external_id + "'>";	
-			rowHtml += "<p class='task_assignee'>" + userTaskData.assignee_first_name + 
-					" " + userTaskData.assignee_last_name + "</p>";
-			rowHtml += "<p class='task_assigner'>" + userTaskData.assigner_first_name +
-					" " + userTaskData.assigner_last_name + "</p>";
-			rowHtml += "<p class='task_description'>" + userTaskData.description.substr(0, 100) + "... </p>";
+		createTaskRow: function(dashTask) {
+			rowHtml = "<div class='task_row task_ready' id='row_for_task_" + dashTask.external_id + "'>";	
+			rowHtml += "<p class='task_assignee'>" + dashTask.assignee_first_name + 
+					" " + dashTask.assignee_last_name + "</p>";
+			rowHtml += "<p class='task_assigner'>" + dashTask.assigner_first_name +
+					" " + dashTask.assigner_last_name + "</p>";
+			rowHtml += "<p class='task_description'>" + dashTask.description.substr(0, 100) + "... </p>";
 			rowHtml += "</p>";
 			rowHtml += "</div><hr />";
 
