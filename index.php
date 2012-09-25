@@ -35,7 +35,10 @@ require_once('.password');
 		/*
 		Loads the people from the teamwork website
 		*/
-		load: function(apiKey) {
+		load: function(apiKey, callBack) {
+			if(typeof(callBack) === "undefined")
+				callBack = function(){};
+
 			$.post("Ajax/portal.php", {
 					method: "teamwork",
 					verb: "get",
@@ -49,6 +52,8 @@ require_once('.password');
 					TeamworkPeopleCollection.people = new Array();
 					for(var personIndex in userData.response.people) 
 						TeamworkPeopleCollection.people.push(userData.response.people[personIndex]);	
+
+					callBack();
 				});
 		}
 	};
@@ -62,7 +67,10 @@ require_once('.password');
 		/*
 		Loads the projects from the teamwork website
 		*/
-		load: function(apiKey) {
+		load: function(apiKey, callBack) {
+			if(typeof(callBack) === "undefined")
+				callBack = function(){};
+
 			$.post("Ajax/portal.php", {
 					method: "teamwork",
 					verb: "get",
@@ -77,7 +85,7 @@ require_once('.password');
 						TeamworkProjectsCollection.
 							projects.push(projectData.response.projects[projectIndex]);
 
-					IsLog.c(projectData);
+					callBack();
 				});
 		}
 	};
@@ -99,6 +107,9 @@ require_once('.password');
 
 		*/
 		load: function(dashboardId, callBack) {
+			if(typeof(callBack) === "undefined")
+				callBack = function(){};
+
 			$.post("Ajax/portal.php", {
 					method: "dashboard",
 					action: "user_specific_tasks",
@@ -138,7 +149,15 @@ require_once('.password');
 		Loads the collection of migration tasks
 		*/
 		load: function(dashboardTasks, teamworkProjects) {
-			// 
+			for(var i = 0; i < DashUserTaskCollection.tasks.length; i++) {
+				for(var j = 0; j < TeamworkProjectsCollection.projects.length; j++) {
+					// match on external id
+					// if it is a very long integer, ignore it (it is a legacy course)
+					IsLog.c(DashUserTaskCollection.tasks[i].course_title);
+					IsLog.c(TeamworkProjectsCollection.projects[j].name);
+				}
+			}
+
 		}
 	};
 
@@ -169,14 +188,14 @@ require_once('.password');
 				DashUserTaskCollection.load(User.dashboardId, function(){
 					IsLog.c("Loading the dashboard tasks");
 					ProjectSelectionCntrl.loadDashTasks();
+
+					// load all of the teamwork projects 
+					TeamworkPeopleCollection.load("", function() {
+						TeamworkProjectsCollection.load("", function() {
+							MigrationTasksCollection.load();
+						});
+					});
 				});
-
-				// load all of the teamwork projects 
-				TeamworkPeopleCollection.load();
-				TeamworkProjectsCollection.load();
-
-				//$("#project_selection").slideToggle();
-				//ProjectSelectionCntrl.populateProjects(User.dashboardId);
 			}
 		},
 
