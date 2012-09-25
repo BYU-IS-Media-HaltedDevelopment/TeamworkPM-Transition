@@ -46,9 +46,9 @@ require_once('.password');
 					userData = eval('(' + jsonUserData + ')');
 					IsLog.c(userData);
 
-					this.people = new Array();
+					TeamworkPeopleCollection.people = new Array();
 					for(var personIndex in userData.response.people) 
-						this.people.push(userData.response.people[personIndex]);	
+						TeamworkPeopleCollection.people.push(userData.response.people[personIndex]);	
 				});
 		}
 	};
@@ -72,9 +72,10 @@ require_once('.password');
 				function(jsonProjectData) {
 					projectData = eval("(" + jsonProjectData + ")");
 					
-					this.projects = new Array();
+					TeamworkProjectsCollection.projects = new Array();
 					for(projectIndex in projectData.response.projects)
-						this.projects.push(projectData.response.projects[projectIndex]);
+						TeamworkProjectsCollection.
+							projects.push(projectData.response.projects[projectIndex]);
 
 					IsLog.c(projectData);
 				});
@@ -93,7 +94,7 @@ require_once('.password');
 		/*
 		Loads the dashboard tasks from the portal
 		*/
-		load: function(dashboardUseId) {
+		load: function(dashboardId) {
 			$.post("Ajax/portal.php", {
 					method: "dashboard",
 					action: "user_specific_tasks",
@@ -102,9 +103,9 @@ require_once('.password');
 				function(jsonTaskData) {
 					var userPortalInfo = eval("(" + jsonTaskData + ")");
 
-					this.tasks = new Array();
+					DashUserTaskCollection.tasks = new Array();
 					for(var taskIndex in userPortalInfo.response) 
-						this.tasks.push(userPortalInfo.response[taskIndex]);
+						DashUserTaskCollection.tasks.push(userPortalInfo.response[taskIndex]);
 				});
 		}
 	};
@@ -125,7 +126,7 @@ require_once('.password');
 		/*
 		Array of Migration Tasks
 		*/
-		this.migrationTasks = new Array();
+		//migrationTasks: null; 
 
 		/*
 		Loads the collection of migration tasks
@@ -157,8 +158,16 @@ require_once('.password');
 		*/
 		goToStep: function(stepId) {
 			if(stepId == 2) {
-				$("#project_selection").slideToggle();
-				ProjectSelectionCntrl.populateProjects(User.dashboardId);
+				IsLog.c("Getting the model information");
+				// pull all of the dashboard projects
+				DashUserTaskCollection.load(User.dashboardId);
+
+				// load all of the teamwork projects 
+				TeamworkPeopleCollection.load();
+				TeamworkProjectsCollection.load();
+
+				//$("#project_selection").slideToggle();
+				//ProjectSelectionCntrl.populateProjects(User.dashboardId);
 			}
 		},
 
