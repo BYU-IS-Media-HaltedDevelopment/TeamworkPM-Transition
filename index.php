@@ -26,7 +26,7 @@ require_once('.password');
 	/*
 	Collection for all the people in Teamwork
 	*/
-	var TeamworkPeopleCollection = {
+	var TeamworkPeople = {
 		/*
 		Array of people
 		*/
@@ -35,23 +35,25 @@ require_once('.password');
 		/*
 		Loads the people from the teamwork website
 		*/
-		load: function(apiKey, callBack) {
+		load: function(callBack) {
 			if(typeof(callBack) === "undefined")
 				callBack = function(){};
+
+			assert(User.apiKey != "", "Can't have empty api key");
 
 			$.post("Ajax/portal.php", {
 					method: "teamwork",
 					verb: "get",
 					path: "people.json",
-					api_key: "indiana702egg"
+					api_key: User.apiKey 
 				},
 				function(jsonUserData) {
 					userData = eval('(' + jsonUserData + ')');
 					IsLog.c(userData);
 
-					TeamworkPeopleCollection.people = new Array();
+					TeamworkPeople.people = new Array();
 					for(var personIndex in userData.response.people) 
-						TeamworkPeopleCollection.people.push(userData.response.people[personIndex]);	
+						TeamworkPeople.people.push(userData.response.people[personIndex]);	
 
 					callBack();
 				});
@@ -61,7 +63,7 @@ require_once('.password');
 	/*
 	Collection of Projects
 	*/
-	var TeamworkProjectsCollection = {
+	var TeamworkProjects = {
 		projects: null,
 
 		/*
@@ -75,14 +77,14 @@ require_once('.password');
 					method: "teamwork",
 					verb: "get",
 					path: "projects.json",
-					api_key: "indiana702egg"
+					api_key: User.apiKey 
 				},
 				function(jsonProjectData) {
 					projectData = eval("(" + jsonProjectData + ")");
 					
-					TeamworkProjectsCollection.projects = new Array();
+					TeamworkProjects.projects = new Array();
 					for(projectIndex in projectData.response.projects)
-						TeamworkProjectsCollection.
+						TeamworkProjects.
 							projects.push(projectData.response.projects[projectIndex]);
 
 					callBack();
@@ -90,10 +92,11 @@ require_once('.password');
 		}
 	};
 
+
 	/*
 	Collection of Dashboard Tasks for a user
 	*/
-	var DashUserTaskCollection = {
+	var DashUserTask = {
 		/*
 		Array of Dashboard tasks
 		*/
@@ -104,7 +107,6 @@ require_once('.password');
 
 		dashboardId: The dashboard user name
 		callBack: The call back that is called once the list is loaded
-
 		*/
 		load: function(dashboardId, callBack) {
 			if(typeof(callBack) === "undefined")
@@ -118,9 +120,9 @@ require_once('.password');
 				function(jsonTaskData) {
 					var userPortalInfo = eval("(" + jsonTaskData + ")");
 
-					DashUserTaskCollection.tasks = new Array();
+					DashUserTask.tasks = new Array();
 					for(var taskIndex in userPortalInfo.response) 
-						DashUserTaskCollection.tasks.push(userPortalInfo.response[taskIndex]);
+						DashUserTask.tasks.push(userPortalInfo.response[taskIndex]);
 
 					callBack();
 				});
@@ -139,25 +141,97 @@ require_once('.password');
 	/*
 	Collection of migration tasks
 	*/
-	var MigrationTasksCollection = {
+	var MigrationTasks = {
 		/*
 		Array of Migration Tasks
 		*/
-		//migrationTasks: null; 
+		migrationTasks: null,
 
 		/*
 		Loads the collection of migration tasks
 		*/
 		load: function(dashboardTasks, teamworkProjects) {
-			for(var i = 0; i < DashUserTaskCollection.tasks.length; i++) {
-				for(var j = 0; j < TeamworkProjectsCollection.projects.length; j++) {
-					// match on external id
-					// if it is a very long integer, ignore it (it is a legacy course)
-					IsLog.c(DashUserTaskCollection.tasks[i].course_title);
-					IsLog.c(TeamworkProjectsCollection.projects[j].name);
+			IsLog.c("Going to compare!");
+
+			IsLog.c("Dashboard tasks");
+			for(var i = 0; i < DashUserTask.tasks.length; i++) 
+				IsLog.c(DashUserTask.tasks[i].external_id.match(/...-...-.../g));
+				
+			IsLog.c("Teamwork projects");
+			for(var j = 0; j < TeamworkProjects.projects.length; j++) 
+				IsLog.c(TeamworkProjects.projects[j].name.match(/...-...-.../g));
+
+			// try to match the tasks
+			for(var i = 0; i < DashUserTask.tasks.length; i++) {	
+				for(var j = 0; j < TeamworkProjects.projects.length; j++) {
+					var dashTaskCourse = MigrationTasks.
+							getCourseNum(DashUserTask.tasks[i].external_id);
+					var teamWorkProjectCourse = MigrationTasks.
+							getCourseNum(TeamworkProjects.projects[j].name);
+
+					if(dashTaskCourse == teamWorkProjectCourse) {
+						IsLog.c("Matched " + dashTaskCourse + " - " + teamWorkProjectCourse);
+
+						MigrationTasks.getTaskList(TeamworkProjects.projects[j], 
+							function(teamWorkTasks) {
+						MigrationTasks.matchDashTaskToTeamTask(DashUserTask.tasks[i], teamWorkTasks);
+								});
+					}
 				}
 			}
+			IsLog.c("Done comparing");
+		},
 
+		/*
+		Utility function for extracting the course name from the string
+		*/
+		getCourseNum: function(courseName) {
+			assert(courseName != null, "Course name can't be null");
+			courseCodeMatches = courseName.match(/...-...-.../g);
+
+			if(courseCodeMatches == null)
+				return "";
+
+			return courseCodeMatches[0];
+		},
+
+		/*
+		Utility function for getting the tasks for a teamwork project
+		*/
+		getTaskList: function(teamWorkProject, callBack) {
+			IsLog.c("Getting tasks for project with id: " + teamWorkProject.id);
+			$.post("Ajax/portal.php", {
+					method: "teamwork",
+					verb: "get",
+					path: "projects/" + teamWorkProject.id + "/todo_lists.json",
+					api_key: User.apiKey 
+				},
+				function(jsonTaskListData) {
+					IsLog.c(jsonTaskListData);
+					taskListData = eval("(" + jsonTaskListData + ")");
+					IsLog.c("Got the task data...");
+					IsLog.c(taskListData);
+					
+					/*TeamworkProjects.projects = new Array();
+					for(projectIndex in projectData.response.projects)
+						TeamworkProjects.
+							projects.push(projectData.response.projects[projectIndex]);*/
+
+					callBack(taskListData.response);
+				});
+		},
+
+		/*
+		Utility function for matching a dashboard task to a teamwork task
+		*/
+		matchDashTaskToTeamTask: function(dashTask, teamWorkTasks) {
+			// santi
+
+			IsLog.c("Trying to match dash-task to teamwork-task");
+			for(var i = 0; i < teamWorkTasks.length; i++)
+				IsLog.c(teamWorkTasks[i]);
+			IsLog.c(dashTask);
+			IsLog.c(teamWorkTasks);
 		}
 	};
 
@@ -185,33 +259,19 @@ require_once('.password');
 			if(stepId == 2) {
 				IsLog.c("Getting the model information");
 				// pull all of the dashboard projects
-				DashUserTaskCollection.load(User.dashboardId, function(){
+				DashUserTask.load(User.dashboardId, function(){
 					IsLog.c("Loading the dashboard tasks");
 					ProjectSelectionCntrl.loadDashTasks();
 
 					// load all of the teamwork projects 
-					TeamworkPeopleCollection.load("", function() {
-						TeamworkProjectsCollection.load("", function() {
-							MigrationTasksCollection.load();
+					TeamworkPeople.load(function() {
+						TeamworkProjects.load("", function() {
+							MigrationTasks.load();
 						});
 					});
 				});
 			}
 		},
-
-		/*
-		Stores the user's api key in the model
-		*/
-		storeUserApiKey: function(apiKey) {
-			User.apiKey = apiKey;
-		},
-
-		/*
-		Stores the user's dashboard id in the model 
-		*/
-		storeUserDashboardId: function(userDashboardId) {
-			User.dashboardId = userDashboardId; 
-		}
 	};
 
 
@@ -236,8 +296,8 @@ require_once('.password');
 						IsLog.c(jsonUserData);
 						var userPortalInfo = eval("(" + jsonUserData + ")");
 						
-						MigrationUtilCntrl.storeUserDashboardId(userPortalInfo.response[0].person_id);
-						MigrationUtilCntrl.storeUserApiKey($("#api_key_input").val());
+						User.dashboardId = userPortalInfo.response[0].person_id;
+						User.apiKey = $("#api_key_input").val();
 
 						MigrationUtilCntrl.goToStep(2);
 					});
@@ -254,9 +314,9 @@ require_once('.password');
 		Populates the view with rows of tasks 
 		*/
 		loadDashTasks: function(dashboardId) {
-			for(var i = 0; i < DashUserTaskCollection.tasks.length; i++){
+			for(var i = 0; i < DashUserTask.tasks.length; i++){
 				$("#dashboard_course_listing").append(
-					ProjectSelectHtmlFactory.createTaskRow(DashUserTaskCollection.tasks[i])
+					ProjectSelectHtmlFactory.createTaskRow(DashUserTask.tasks[i])
 						);
 			}
 
@@ -268,7 +328,7 @@ require_once('.password');
 		*/
 		hideUi: function() {
 			$("#project_selection").hide();
-		},
+		}
 	};
 	
 	/*
@@ -309,8 +369,8 @@ require_once('.password');
 	//	<!--
 	$(document).ready(function() {
 		MigrationUtilCntrl.init();
-		TeamworkPeopleCollection.load();
-		TeamworkProjectsCollection.load();
+		TeamworkPeople.load();
+		TeamworkProjects.load();
 	});
 	//	-->
 	</script>
@@ -320,8 +380,8 @@ require_once('.password');
     <div id="user_info_view">
     	<h2>Step 1: Please enter user info...</h2>
     	<table>
-		<tr><td>Dashboard username:</td><td><input id="dashboard_username_input" type="text" /><td></tr>
-		<tr><td>Teamwork API Key:</td><td><input id="api_key_input" type="text" /><td></tr>
+		<tr><td>Dashboard username:</td><td><input id="dashboard_username_input" value="swg5" type="text" /><td></tr>
+		<tr><td>Teamwork API Key:</td><td><input id="api_key_input" value="cut527march" type="text" /><td></tr>
 	</table>
 	<button id="user_info_next_button" type="button">Next</button>
     </div>
