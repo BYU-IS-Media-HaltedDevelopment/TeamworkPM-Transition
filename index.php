@@ -1,112 +1,404 @@
 <?PHP
 require_once('.password');
-?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<title>Dashboard to TeamworkPM Migration Utility</title>
-	<link href="css/teamworkpm._m.css?f=179176106" rel="stylesheet" />
+	<link rel="stylesheet" type="text/css" href="generic_style.css" />
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js" type="text/javascript"></script>
-	<style type="text/css">
-	.tasktab {
-		display: none;
-	}
-	.disabled {
-		color: grey !important;
-	}
-	</style>
+	<script src="../JavaScript-DebugTools/debug.lib.js" type="text/javascript"></script>
 	<script type="text/javascript">
+
+	/*
+	=======================Model=======================
+	*/
+
+	/*
+	Model for the user	
+	*/
+	var User = {
+		apiKey: "",
+		dashboardId: ""
+	};
+
+	/*
+	Collection for all the people in Teamwork
+	*/
+	var TeamworkPeople = {
+		/*
+		Array of people
+		*/
+		people: null,
+
+		/*
+		Loads the people from the teamwork website
+		*/
+		load: function(callBack) {
+			if(typeof(callBack) === "undefined")
+				callBack = function(){};
+
+			assert(User.apiKey != "", "Can't have empty api key");
+
+			$.post("Ajax/portal.php", {
+					method: "teamwork",
+					verb: "get",
+					path: "people.json",
+					api_key: User.apiKey 
+				},
+				function(jsonUserData) {
+					userData = eval('(' + jsonUserData + ')');
+					IsLog.c(userData);
+
+					TeamworkPeople.people = new Array();
+					for(var personIndex in userData.response.people) 
+						TeamworkPeople.people.push(userData.response.people[personIndex]);	
+
+					callBack();
+				});
+		}
+	};
+
+	/*
+	Collection of Projects
+	*/
+	var TeamworkProjects = {
+		projects: null,
+
+		/*
+		Loads the projects from the teamwork website
+		*/
+		load: function(apiKey, callBack) {
+			if(typeof(callBack) === "undefined")
+				callBack = function(){};
+
+			$.post("Ajax/portal.php", {
+					method: "teamwork",
+					verb: "get",
+					path: "projects.json",
+					api_key: User.apiKey 
+				},
+				function(jsonProjectData) {
+					projectData = eval("(" + jsonProjectData + ")");
+					
+					TeamworkProjects.projects = new Array();
+					for(projectIndex in projectData.response.projects)
+						TeamworkProjects.
+							projects.push(projectData.response.projects[projectIndex]);
+
+					callBack();
+				});
+		}
+	};
+
+
+	/*
+	Collection of Dashboard Tasks for a user
+	*/
+	var DashUserTask = {
+		/*
+		Array of Dashboard tasks
+		*/
+		tasks: null,
+		
+		/*
+		Loads the dashboard tasks from the portal
+
+		dashboardId: The dashboard user name
+		callBack: The call back that is called once the list is loaded
+		*/
+		load: function(dashboardId, callBack) {
+			if(typeof(callBack) === "undefined")
+				callBack = function(){};
+
+			$.post("Ajax/portal.php", {
+					method: "dashboard",
+					action: "user_specific_tasks",
+					user_id: "'" + dashboardId + "'" 
+				},
+				function(jsonTaskData) {
+					var userPortalInfo = eval("(" + jsonTaskData + ")");
+
+					DashUserTask.tasks = new Array();
+					for(var taskIndex in userPortalInfo.response) 
+						DashUserTask.tasks.push(userPortalInfo.response[taskIndex]);
+
+					callBack();
+				});
+		}
+	};
+	
+	/*
+	Represents a task that can be migrated
+	*/
+	var MigrationTask = function() {
+		this.dashboardTask = null;
+		this.teamworkProject = null;
+		this.ready = false;
+	};
+
+	/*
+	Collection of migration tasks
+	*/
+	var MigrationTasks = {
+		/*
+		Array of Migration Tasks
+		*/
+		migrationTasks: null,
+
+		/*
+		Loads the collection of migration tasks
+		*/
+		load: function(dashboardTasks, teamworkProjects) {
+			IsLog.c("Going to compare!");
+
+			IsLog.c("Dashboard tasks");
+			for(var i = 0; i < DashUserTask.tasks.length; i++) 
+				IsLog.c(DashUserTask.tasks[i].external_id.match(/...-...-.../g));
+				
+			IsLog.c("Teamwork projects");
+			for(var j = 0; j < TeamworkProjects.projects.length; j++) 
+				IsLog.c(TeamworkProjects.projects[j].name.match(/...-...-.../g));
+
+			// try to match the tasks
+			for(var i = 0; i < DashUserTask.tasks.length; i++) {	
+				for(var j = 0; j < TeamworkProjects.projects.length; j++) {
+					var dashTaskCourse = MigrationTasks.
+							getCourseNum(DashUserTask.tasks[i].external_id);
+					var teamWorkProjectCourse = MigrationTasks.
+							getCourseNum(TeamworkProjects.projects[j].name);
+
+					if(dashTaskCourse == teamWorkProjectCourse) {
+						IsLog.c("Matched " + dashTaskCourse + " - " + teamWorkProjectCourse);
+
+						MigrationTasks.getTaskList(TeamworkProjects.projects[j], 
+							function(teamWorkTasks) {
+						MigrationTasks.matchDashTaskToTeamTask(DashUserTask.tasks[i], teamWorkTasks);
+								});
+					}
+				}
+			}
+			IsLog.c("Done comparing");
+		},
+
+		/*
+		Utility function for extracting the course name from the string
+		*/
+		getCourseNum: function(courseName) {
+			assert(courseName != null, "Course name can't be null");
+			courseCodeMatches = courseName.match(/...-...-.../g);
+
+			if(courseCodeMatches == null)
+				return "";
+
+			return courseCodeMatches[0];
+		},
+
+		/*
+		Utility function for getting the tasks for a teamwork project
+		*/
+		getTaskList: function(teamWorkProject, callBack) {
+			IsLog.c("Getting tasks for project with id: " + teamWorkProject.id);
+			$.post("Ajax/portal.php", {
+					method: "teamwork",
+					verb: "get",
+					path: "projects/" + teamWorkProject.id + "/todo_lists.json",
+					api_key: User.apiKey 
+				},
+				function(jsonTaskListData) {
+					IsLog.c(jsonTaskListData);
+					taskListData = eval("(" + jsonTaskListData + ")");
+					IsLog.c("Got the task data...");
+					IsLog.c(taskListData);
+					
+					/*TeamworkProjects.projects = new Array();
+					for(projectIndex in projectData.response.projects)
+						TeamworkProjects.
+							projects.push(projectData.response.projects[projectIndex]);*/
+
+					callBack(taskListData.response);
+				});
+		},
+
+		/*
+		Utility function for matching a dashboard task to a teamwork task
+		*/
+		matchDashTaskToTeamTask: function(dashTask, teamWorkTasks) {
+			// santi
+
+			IsLog.c("Trying to match dash-task to teamwork-task");
+			for(var i = 0; i < teamWorkTasks.length; i++)
+				IsLog.c(teamWorkTasks[i]);
+			IsLog.c(dashTask);
+			IsLog.c(teamWorkTasks);
+		}
+	};
+
+	/*
+	=======================Controllers/Model=======================
+	*/
+
+	/*
+	Controller for the entire app.  Only this controller will talk
+	to the model.
+	*/
+	var MigrationUtilCntrl = {
+		/*
+		Puts the application into a legal starting state
+		*/
+		init: function() {
+			UserInfoCntrl.init();
+			ProjectSelectionCntrl.hideUi();
+		},
+
+		/*
+		Moves the utility to the given step.
+		*/
+		goToStep: function(stepId) {
+			if(stepId == 2) {
+				IsLog.c("Getting the model information");
+				// pull all of the dashboard projects
+				DashUserTask.load(User.dashboardId, function(){
+					IsLog.c("Loading the dashboard tasks");
+					ProjectSelectionCntrl.loadDashTasks();
+
+					// load all of the teamwork projects 
+					TeamworkPeople.load(function() {
+						TeamworkProjects.load("", function() {
+							MigrationTasks.load();
+						});
+					});
+				});
+			}
+		},
+	};
+
+
+	/*
+	Controller for when the user enters their information.
+	*/
+	var UserInfoCntrl = {
+		/*
+		Initializes the user info controller
+		*/
+		init: function() {
+			// connect the controller to the view			
+			$("#user_info_next_button").click(function(){	
+				var dashboardUsername = $("#dashboard_username_input").val();
+				IsLog.c("Username: " + dashboardUsername); 
+				$.post("Ajax/portal.php", {
+						method: "dashboard",
+						action: "get_user_id",
+						dashboard_username: dashboardUsername 
+					},
+					function(jsonUserData) {
+						IsLog.c(jsonUserData);
+						var userPortalInfo = eval("(" + jsonUserData + ")");
+						
+						User.dashboardId = userPortalInfo.response[0].person_id;
+						User.apiKey = $("#api_key_input").val();
+
+						MigrationUtilCntrl.goToStep(2);
+					});
+
+			});
+		}
+	};
+
+	/*
+	Controller for when the user selects a course to migrate.
+	*/
+	var ProjectSelectionCntrl = {
+		/*
+		Populates the view with rows of tasks 
+		*/
+		loadDashTasks: function(dashboardId) {
+			for(var i = 0; i < DashUserTask.tasks.length; i++){
+				$("#dashboard_course_listing").append(
+					ProjectSelectHtmlFactory.createTaskRow(DashUserTask.tasks[i])
+						);
+			}
+
+			$("#project_selection").slideToggle();
+		},
+
+		/*
+		Hides the user gui for project selection
+		*/
+		hideUi: function() {
+			$("#project_selection").hide();
+		}
+	};
+	
+	/*
+	Provides utility methods for creating elements used in the project selection
+	view
+	*/
+	ProjectSelectHtmlFactory = {
+		/*
+		Creates a row for task
+		*/
+		createTaskRow: function(dashTask) {
+			rowHtml = "<div class='task_row task_ready' id='row_for_task_" + dashTask.external_id + "'>";	
+			rowHtml += "<p class='task_assignee'>" + dashTask.assignee_first_name + 
+					" " + dashTask.assignee_last_name + "</p>";
+			rowHtml += "<p class='task_assigner'>" + dashTask.assigner_first_name +
+					" " + dashTask.assigner_last_name + "</p>";
+			rowHtml += "<p class='task_description'>" + dashTask.description.substr(0, 100) + "... </p>";
+			rowHtml += "</p>";
+			rowHtml += "</div><hr />";
+
+			IsLog.c(rowHtml);
+			return rowHtml;
+		},
+
+		createTaskDetailView: function(userTaskData) {
+			detailViewHtml = "<div class='detail_task_view' id='detail_of_task_" + userTaskData.external_id  + "'>";
+			detailViewHtml += "<p>Assignee: " + userTaskData.assignee_first_name + 
+					" " + userTaskData.assignee_last_name + "</p>";
+			detailViewHtml += "<p>Assigner: " + userTaskData.assigner_first_name +
+					" " + userTaskData.assigner_last_name + "</p>";
+			detailViewHtml += "<p class='task_detail_complete_descrip'>Complete Description</p>";
+			detailViewHtml += "<p>" + userTaskData.description + "</p>";
+			detailViewHtml += "</div>";
+			return detailViewHtml; 
+		}
+	};
+	
 	//	<!--
 	$(document).ready(function() {
-		/*$("#requestType").change(function(e) {
-			$(".tasktab").css("display","none");
-			$("#"+e.target.options[e.target.selectedIndex].value).css("display","block");
-			//$("#"+).css("display","none");
-			$.post("Ajax/portal.php", {
-					api_key: $("#api_key").value,
-					id: "38839",
-					method: "GET",
-					action: "projects"
-				},
-				function(data) {
-					//alert(data);
-					$("#copyTasks").html(data)
-					var jsonResponse = JSON.parse(data);
-					alert(data.length + '\n' + JSON.stringify(jsonResponse.response.todo_lists.length));
-				}
-			);
-		});*/
-		
-		// Load all the courses that can be migrated from dashboard
-		$.post("Ajax/portal.php", {
-					method: "dashboard",
-					id: "38839",
-					action: "get_course_listing"},
-				function(data){
-					alert(data);
-				});
+		MigrationUtilCntrl.init();
+		TeamworkPeople.load();
+		TeamworkProjects.load();
 	});
 	//	-->
 	</script>
 </head>
 <body>
-	<div id="LayoutMockup">
-		<div class="noSel" id="topNavBarNew"><div id="topRight">
-			<ul class="noSel" id="topRightNav">		
-				<li class="first" id="navquickadd"><a class="tipped disabled" href="javascript:;"><span>Quick Add</span></a></li>
-				<li id="navswitchproject"><a class="tipped disabled" href="javascript:;"><span>Switch Project</span></a></li>
-				<li id="navsettings"><a class="tipped disabled" href="javascript:;"><span>Settings</span></a></li>
-			</ul>
-		</div>
-		<div id="topLeftDashTabsNew">
-			<ul>
-				<li id="tl_dashboard"><a class="ql" href="https://byuis.teamworkpm.net/dashboard">Dashboard</a></li><li>|</li>
-				<li id="tl_everything"><a title="View tasks, milestones &amp; messages across all projects" href="https://byuis.teamworkpm.net/allitems">Everything</a></li><li>|</li>
-				<li id="tl_projects"><a class="ql" href="https://byuis.teamworkpm.net/projects">Projects</a></li><li>|</li>
-				<li id="tl_calendar"><a class="ql" href="https://byuis.teamworkpm.net/calendar">Calendar</a></li><li>|</li>
-				<li id="tl_statuses"><a class="ql" href="https://byuis.teamworkpm.net/statuses">Statuses</a></li><li>|</li>
-				<li id="tl_people"><a class="ql" href="https://byuis.teamworkpm.net/people">People</a></li>
-			</ul>
-		</div>
-		<div style="height:2.5em;">
-			&nbsp;
-		</div>
-		<div id="Tabs" class="sub">
-			<ul id="MainTabs">
-				<li class="first sel" id="tab_overview"><a class="ql" href="javascript:;">Specific User Tasks</a></li>
-				<li class="last" id="tab_tasks"><a class="ql" href="projects/76256-bio-041-200-/tasks">Special Dashboard Query</a></li>
-			</ul>
-		</div>
-	</div>
-	<div id="mainContent" class="section" style="margin-left: 1em;">
-		<div class="sectiontr"></div>
-		<div class="sectiontl"></div>
-		<div id="titleHolder">Title</div>
-		<div>
-			Hello world
-		</div>
-	</div>
-	<div id="taskExample">
-			<div id="task1138128" class="task hs" style="position: relative; "><div class="taskLHS"><img id="ti1138128" src="images/icons/checkBox.png" width="13" height="13" alt="" onclick="tw.CheckboxMarkTaskDone(1138128)" style="cursor:pointer;cursor:hand;margin-top:4px;"><div id="pOpt1138128" class="btnDrpDwnDiv huh"><a href="javascript:tw.ShowTaskDropDown(1138128)" class="btnDrpDwn"><span class="l"></span><span class="mid"></span><span class="l"></span></a></div><span class="tHl huh" id="tHl1138128"></span></div><div id="taskRHSH1138128" class="taskRHSH hs"><div id="taskRHS1138128" class="taskRHS"><a href="javascript:tw.ShowEditTask(1138128)" style="font-size:10px;text-decoration:none;" title="Ryan B., Maurianne D., Luke R., Heather B." class="taskBubble mine"><span class="l"></span><span class="r"></span><span class="n">You + 3 others</span></a><span class="estimate tipped" data-tipped-options="showDelay:1000" data-tipped="Estimated time"><a href="javascript:;" onclick="Lightbox.showBoxByAJAX( '?action=invoke.tasks.showLBTaskEstimates()&amp;taskId=1138128&amp;uid='+(new Date()).getTime(), 500, 250, true, null );">8&nbsp;hrs</a></span><a href="tasks/1138128" class="ql tipped" data-tipped-options="skin:'light',showDelay:1000,offset:{y:-5},hook:'topmiddle'" data-tipped="&lt;span style='font-size:9px'&gt;Created by Luke Rebarchik&lt;/span&gt;"><span id="taskName1138128" class="taskName">All courses that currently use BrightCove videos are broken - get response from Computer Ops on ETA for resolution</span></a> <span class="taskDue late" title="Thursday 23 August" reldate="230812">(13 days ago)</span><span class="time tipped" data-tipped="?action=invoke.tasks.getTip_showTimeOnTask()&amp;taskId=1138128&amp;projectId=73292&amp;uid=1346852792225" data-tipped-options="ajax:{cache:false},skin:'light',hideOn:'click-outside',showDelay:500" onclick="tw.GenericLoad('TimeReport.ShowLBLogTimeForTaskForm( 73292 , 1138128 )')"><img src="images/icons/timeItem.png" align="absmiddle" width="16" height="16" alt="" border="0"></span><a href="javascript:;" id="task1138128_commentCount" onclick="Tasks.OnClickBubble(1138128);" title="1 comment" class="taskComment1 tipped" data-tipped="?action=invoke.comments.getTip_objectLatestComment()&amp;projectId=73292&amp;objectType=task&amp;objectId=1138128" data-tipped-options="ajax:true,skin:'light',hideOn:'click-outside'">1</a></div></div></div>
-		</div>
-	</div>
-	<div><input type="text" id="api_key" placeholder="API Key"/></div>
-	<div>
-		<select id="requestType">
-			<option>-- Select the task you wish to perform --</option>
-			<option value="copyTasks">Migrate user tasks</option>
-			<option value="customQuery">Perform a custom query</option>
-		</select>
-	</div>
-	<div class="tasktab" id="copyTasks">
-		Hello world
-	</div>
-    
     <!--start of new interface -->
-    <div id="db_project_selection">
-    	<h2>Step 1: Please select dashboard course to migrate</h2>
-       	<table id="dashboard_course_listing">
-        </table>
+    <div id="user_info_view">
+    	<h2>Step 1: Please enter user info...</h2>
+    	<table>
+		<tr><td>Dashboard username:</td><td><input id="dashboard_username_input" value="swg5" type="text" /><td></tr>
+		<tr><td>Teamwork API Key:</td><td><input id="api_key_input" value="cut527march" type="text" /><td></tr>
+	</table>
+	<button id="user_info_next_button" type="button">Next</button>
+    </div>
+
+    <div id="project_selection">
+    	<h2>Step 2: Please select dashboard tasks to migrate...</h2>
+	<p>Click a task to see a detailed view.</p>
+	<p>Color code: Red means there are un-automated steps that need to be performed before this task
+	can be migrated.  Click here to find out what steps are. Green means they are ready to migrate.</p>
+	<div id="dashboard_course_listing">
+		<div id="task_table_headers">
+			<p class="task_assignee">Assignee</p>
+			<p class="task_assigner">Assigner</p>
+			<p class="task_description">Description</p>
+		</div>
+		<hr />
+	</div>
     </div>
 </body>
 </html>
