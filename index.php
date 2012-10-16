@@ -53,7 +53,8 @@ require_once('.password');
 
 					TeamworkPeople.people = new Array();
 					for(var personIndex in userData.response.people) 
-						TeamworkPeople.people.push(userData.response.people[personIndex]);	
+						TeamworkPeople.people.push(
+							userData.response.people[personIndex]);	
 
 					callBack();
 				});
@@ -85,7 +86,8 @@ require_once('.password');
 					TeamworkProjects.projects = new Array();
 					for(projectIndex in projectData.response.projects)
 						TeamworkProjects.
-							projects.push(projectData.response.projects[projectIndex]);
+							projects.push(
+						projectData.response.projects[projectIndex]);
 
 					callBack();
 				});
@@ -162,6 +164,7 @@ require_once('.password');
 				IsLog.c(TeamworkProjects.projects[j].name.match(/...-...-.../g));
 
 			// try to match the tasks
+			var dashTasksToMatch = new Array();
 			for(var i = 0; i < DashUserTask.tasks.length; i++) {	
 				for(var j = 0; j < TeamworkProjects.projects.length; j++) {
 					var dashTaskCourse = MigrationTasks.
@@ -170,11 +173,14 @@ require_once('.password');
 							getCourseNum(TeamworkProjects.projects[j].name);
 
 					if(dashTaskCourse == teamWorkProjectCourse) {
-						IsLog.c("Matched " + dashTaskCourse + " - " + teamWorkProjectCourse);
+						IsLog.c("Matched " + dashTaskCourse + " - " + 
+								teamWorkProjectCourse);
 
+						dashTasksToMatch.push(DashUserTask.tasks[i]);
 						MigrationTasks.getTaskList(TeamworkProjects.projects[j], 
 							function(teamWorkTasks) {
-						MigrationTasks.matchDashTaskToTeamTask(DashUserTask.tasks[i], teamWorkTasks);
+						MigrationTasks.matchDashTaskToTeamTask(
+							dashTasksToMatch, teamWorkTasks);
 								});
 					}
 				}
@@ -215,7 +221,8 @@ require_once('.password');
 					/*TeamworkProjects.projects = new Array();
 					for(projectIndex in projectData.response.projects)
 						TeamworkProjects.
-							projects.push(projectData.response.projects[projectIndex]);*/
+							projects.push(
+							projectData.response.projects[projectIndex]);*/
 
 					callBack(taskListData.response);
 				});
@@ -236,7 +243,7 @@ require_once('.password');
 	};
 
 	/*
-	=======================Controllers/Model=======================
+	=======================Controllers/View=======================
 	*/
 
 	/*
