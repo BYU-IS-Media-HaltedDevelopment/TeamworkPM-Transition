@@ -1,0 +1,83 @@
+/* 
+    Document   : table
+    Created on : Oct 19, 2012, 1:43:42 PM
+    Author     : coned
+    Description:
+        Purpose of the stylesheet follows.
+*/
+
+body
+{
+    
+}
+
+h1
+{
+    text-align: center;
+    font-family: sans-serif;
+}
+
+.migration-task
+{
+    border: black;
+    background-color: #00CC00;
+}
+
+.selected-for-migration
+{
+    background-color: #0099FF;
+}
+
+.migration-status
+{
+    font-style: italic;
+}
+
+.migration-status td
+{
+    text-align: center;
+}
+
+table
+{
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 15px;
+}
+
+td, th
+{
+    padding: 5px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #666666;
+}
+
+th
+{
+    background-color: #999999;
+}
+
+.to-migrate
+{
+    background-color: #80CC99;
+}
+
+.unmatchable-task
+{
+    background-color: #FFB2B2;
+}
+
+#migration-button, #get-tasks-button
+{
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.begin-migration-button, .migrate-button, .task-list-selected, .person-added
+{
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
