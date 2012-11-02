@@ -1,5 +1,6 @@
 <?php
 
+require_once "TeamworkPortal.php";
 require_once "TeamworkTodoList.php";
 
 /*
@@ -67,8 +68,11 @@ class TeamworkProject
 		//echo "Loading todo list! <br />";	
 		// echo $this->id . "<br />";
 
-		global $api_keys;
-		$credentials = $api_keys["luke's"]["teamwork"]."xxx";
+		global $api_keys,$_SESSION;
+		if(!isset($_SESSION['api_key']))
+			$credentials = $api_keys["luke's"]["teamwork"].":xxx";
+		else
+			$credentials =$_SESSION['api_key'].":xxx";
 		$ch = curl_init("http://byuis.teamworkpm.net/projects/" . $this->id . "/todo_lists.json");
 		curl_setopt($ch, CURLOPT_HTTPHEADER, array (
 						"Accept: application/xml",

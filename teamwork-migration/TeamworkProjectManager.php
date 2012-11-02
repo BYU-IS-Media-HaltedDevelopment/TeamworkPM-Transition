@@ -26,13 +26,14 @@ class TeamworkProjectManager
     private function __construct()
     {
 	$this->loadFromNet();
+	return $this;
     }
     
     public static function getInstance()
     {
-	if(self::$instance == null)
-	    self::$instance = new TeamworkProjectManager();
-	
+	if(self::$instance == null) {
+	    self::$instance = new self();
+	}
 	return self::$instance;
     }
     
