@@ -24,6 +24,7 @@ var UserInfoController = {
 
 	})
 	.error(function() {alert("Couldn't get tasks");});*/
+	console.log("Authenticating: " + UserInfoView.getUsername());
 	UserInfoFacade.authenticate(UserInfoView.getUsername(), 
 	    UserInfoView.getApiKey(), 
 	    function(){});

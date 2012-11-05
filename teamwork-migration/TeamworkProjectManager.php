@@ -1,5 +1,6 @@
 <?php
 
+require_once ".password";
 require_once "TeamworkProject.php";
 
 /**
@@ -64,14 +65,14 @@ class TeamworkProjectManager
      */
     private function loadFromNet()
     {
-	$teamworkResponse = TeamworkPortal::getQuery("projects.json");
+	$teamworkResponse = TeamworkPortal::getData("projects.json");
 	if(!$teamworkResponse)
 	{
 	    echo "Couldn't get the people";
 	    die();
 	}
 	
-	$projectArray = json_decode($teamworkResponse);
+	$projectArray = ($teamworkResponse)?$teamworkResponse:array();
 	
 	for($i = 0; $i < count($projectArray->projects); $i++)
 	{

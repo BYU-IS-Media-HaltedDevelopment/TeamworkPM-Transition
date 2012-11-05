@@ -138,8 +138,13 @@ error_reporting(E_ALL);
     
     <div id="user_info_view">
         <table>
-                <tr><td>Dashboard username:</td><td><input id="dashboard-username-input" value="sg99" type="text" /></td></tr>
-                <tr><td>Teamwork API Key:</td><td><input id="api-key-input" value="cut527march" type="text" /></td></tr>
+                <tr><td>Dashboard username:</td><td><input id="dashboard-username-input" value="mp239" type="text" /></td></tr>
+                <!---
+                	Scott: 
+                    Suzy: sg99 cut527march
+                    Marga: mp239 bluff861cod
+                 --->
+                <tr><td>Teamwork API Key:</td><td><input id="api-key-input" value="bluff861cod" type="text" /></td></tr>
         </table>
 	<button id="user-info-ok-button" type="button">Ok</button>
     </div>   

@@ -9,7 +9,7 @@ var MigrationTaskFacade = {
      * Gets the tasks that need to be migrated
      */
     getUserTasksToMigrate: function(callback) {
-	$.get("MigrationUtil.php?username=sg99", function(taskJson){
+	$.get("MigrationUtil.php?username="+UserInfoView.getUsername(), function(taskJson){
 	   callback(taskJson);
 	});
     }

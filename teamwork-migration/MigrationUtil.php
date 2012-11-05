@@ -10,6 +10,8 @@ require_once "TeamworkProjectManager.php";
 require_once "DashboardTaskManager.php";
 require_once "DashboardPortal.php";
 
+session_start();
+
 /*
 Represents the main utility for migrating tasks
 */
@@ -105,8 +107,8 @@ class MigrationUtil
 	}
 }
 
-$migrationUtil = new MigrationUtil($_GET["username"]);
-$jsonTasks = $migrationUtil->getMigrationTasks("sg99", "cut527march");
-print_r($jsonTasks);
+//$migrationUtil = new MigrationUtil($_GET["username"]);
+//$jsonTasks = $migrationUtil->getMigrationTasks("sg99", "cut527march");
+//print_r($jsonTasks);
 
 ?>

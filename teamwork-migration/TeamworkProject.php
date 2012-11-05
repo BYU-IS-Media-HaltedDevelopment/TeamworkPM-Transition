@@ -67,20 +67,9 @@ class TeamworkProject
 	{
 		//echo "Loading todo list! <br />";	
 		// echo $this->id . "<br />";
-
-		global $api_keys,$_SESSION;
-		if(!isset($_SESSION['api_key']))
-			$credentials = $api_keys["luke's"]["teamwork"].":xxx";
-		else
-			$credentials =$_SESSION['api_key'].":xxx";
-		$ch = curl_init("http://byuis.teamworkpm.net/projects/" . $this->id . "/todo_lists.json");
-		curl_setopt($ch, CURLOPT_HTTPHEADER, array (
-						"Accept: application/xml",
-						"Content-Type: text/xml; charset=utf-8"));
-		curl_setopt($ch, CURLOPT_USERPWD, "cut527march:xxx");
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		$todoListJson = hyphenToUnderscore(curl_exec($ch));
-		$todoLists = json_decode($todoListJson)->todo_lists;
+		$query = "projects/" . $this->id . "/todo_lists.json";
+		
+		$todoLists = TeamworkPortal::getData($query)->todo_lists;
                 for($i = 0; $i < count($todoLists); $i++)
                 {
                     $this->todoLists[] = new TeamworkTodoList($todoLists[$i]->project_id);
