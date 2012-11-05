@@ -4,40 +4,14 @@ var UserInfoController = {
      */
     ok: function()
     {
-	/*$.get("MigrationUtil.php?username=" + UserInfoView.getUsername(), function(data){
-	    alert("Got data");
-	   /*var migrationTasks = eval("(" + data + ")");
-
-	   for(i = 0; i < migrationTasks.length; i++)
-	   {
-	       if(migrationTasks[i].taskId != "completed-task")
-	       {
-		    var newTaskRow = new TaskRow(migrationTasks[i]);
-		    $("#migration-tasks-table").append(newTaskRow.toHtml());
-	       }
-	   }
-
-	    // hook up the dialog boxes to the rows
-	    $(".unmatched-notes").click(function() {
-	       $("#unmatched-task-dialog").dialog({modal: true});
-	    });
-
-	})
-	.error(function() {alert("Couldn't get tasks");});*/
-	console.log("Authenticating: " + UserInfoView.getUsername());
+	console.log("Authenticating: " + UserInfoView.getUsername());	
 	UserInfoFacade.authenticate(UserInfoView.getUsername(), 
 	    UserInfoView.getApiKey(), 
-	    function(){});
-	
-	console.log(MigrationTaskFacade);
-	
-	// 
-	MigrationTaskFacade.getUserTasksToMigrate(function(taskJson){
-	    console.log(taskJson);
-	});
-	
-	ProjectFacade.loadProjects(function(){});
+	    function(){
+		MigrationTaskTableController.userLoggedIn();
+	    });
     }
+    
 }
 
 var UserInfoView = {

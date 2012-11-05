@@ -16,7 +16,6 @@ var UserInfoFacade = {
 	$.post("User.php", 
 	    {dash_user: dashUser, api_key: apiKey}, 
 	    function(data){
-		alert("Authenticated");
 		callback();
 	    });
     }

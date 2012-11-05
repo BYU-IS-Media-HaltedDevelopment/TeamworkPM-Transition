@@ -15,6 +15,7 @@ error_reporting(E_ALL);
 	<script type="text/javascript" src="http://code.jquery.com/jquery-1.8.2.min.js"></script>
 	<script src="http://code.jquery.com/ui/1.9.1/jquery-ui.js"></script>
 	<script src="UserInfoController.js" type="text/javascript"></script>
+	<script src="MigrationTaskTable.js" type="text/javascript"></script>
 	<script src="MigrationTaskFacade.js" type="text/javascript"></script>
 	<script src="UserInfoFacade.js" type="text/javascript"></script>
 	<script src="ProjectFacade.js" type="text/javascript"></script>
@@ -126,14 +127,15 @@ error_reporting(E_ALL);
 		
 		// init views
 		UserInfoView.init();
+		MigrationTaskTableView.init();
 	    });
 	</script>
 </head>
 <body>
-<?php
-//$migrationUtil = new MigrationUtil; 
-//$migrationUtil->getMigrationTasks("asdf", "adf");
-?>
+    <div id="loading-table-dialog" title="Loading Data">
+	<p>Please wait while your tasks are loaded. This may take a minute...</p>
+    </div>    
+    
     <h1>Dashboard Migration Utility</h1>
     
     <div id="user_info_view">
@@ -182,6 +184,5 @@ error_reporting(E_ALL);
 	    <input type="text" />
 	</div>	
     </div>
-    
 </body>
 </html>
